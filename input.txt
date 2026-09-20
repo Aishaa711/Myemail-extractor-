@@ -1,0 +1,32 @@
+Student Programming Workshop
+
+Hello everyone,
+
+The programming workshop will take place next Saturday at 10:00 AM in Lab 3.
+
+If you have any questions about the workshop, please contact Ahmed at ahmed@gmail.com.
+For registration issues, you can email registration@university.org.
+
+The student activities team is also available at activities@university.org.
+If you have technical problems during registration, contact support@example.com.
+
+Please make sure that Python is installed on your laptop before attending the workshop.
+
+For students interested in problem solving, you can contact Sara at sara@yahoo.com.
+The problem solving group meets every Monday at 4:00 PM.
+For more information, email sara@yahoo.com.
+
+If you are interested in backend development, contact Mohamed at mohamed.dev@gmail.com.
+You can also send general questions to info@studentcommunity.com.
+
+Please register before Thursday.
+Students who have already registered do not need to register again.
+
+For registration problems, please contact registration@university.org.
+Our support team will try to respond within 24 hours.
+
+After the workshop, you can send your feedback to feedback@example.com.
+If you have any other questions, email info@studentcommunity.com.
+
+Thank you for participating,
+Student Community Team
