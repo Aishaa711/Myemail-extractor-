@@ -47,6 +47,3 @@ ahmed@gmail.com
 registration@university.org
 ```
 
-## CodeAlpha
-
-This project was created as part of the CodeAlpha Python Programming Internship.
