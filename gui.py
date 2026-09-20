@@ -11,7 +11,7 @@ ctk.set_default_color_theme("blue")
 class EmailExtractorApp:
     def __init__(self):
         self.root = ctk.CTk()
-        self.root.title("Email Extractor Pro")
+        self.root.title("Email Extractor")
         self.root.geometry("700x600")
         self.root.minsize(600, 500)
 
