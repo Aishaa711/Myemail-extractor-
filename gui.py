@@ -28,7 +28,7 @@ class EmailExtractorApp:
         # Title
         title_label = ctk.CTkLabel(
             main_frame,
-            text="📧 Email Extractor Pro",
+            text="📧 Email Extractor ",
             font=ctk.CTkFont(size=28, weight="bold")
         )
         title_label.pack(pady=(20, 30))
