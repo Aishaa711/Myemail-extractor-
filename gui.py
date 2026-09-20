@@ -1,125 +1,215 @@
-"""Tkinter GUI wrapper for an unchanged main.py email extractor.
+import re
+import customtkinter as ctk
+from tkinter import filedialog, messagebox
+import os
 
-Place this file beside your existing main.py. The GUI copies the chosen input
-file to a temporary input.txt, runs main.py there, and reads its emails.txt.
-"""
-
-import shutil
-import subprocess
-import sys
-import tempfile
-import tkinter as tk
-from pathlib import Path
-from tkinter import filedialog, messagebox, ttk
+# Set appearance mode and default color theme
+ctk.set_appearance_mode("System")
+ctk.set_default_color_theme("blue")
 
 
-APP_FOLDER = Path(__file__).resolve().parent
-MAIN_SCRIPT = APP_FOLDER / "main.py"
-
-
-class EmailExtractorGUI(tk.Tk):
+class EmailExtractorApp:
     def __init__(self):
-        super().__init__()
-        self.title("Email Extractor")
-        self.geometry("700x500")
-        self.minsize(550, 380)
+        self.root = ctk.CTk()
+        self.root.title("Email Extractor Pro")
+        self.root.geometry("700x600")
+        self.root.minsize(600, 500)
 
-        self.selected_file = None
-        self.emails_text = ""
-        self.file_label = tk.StringVar(value="No input file selected")
-        self.status = tk.StringVar(value="Choose a text file, then extract emails.")
-        self._build_ui()
+        self.input_file_path = ""
+        self.output_file_path = ""
 
-    def _build_ui(self):
-        frame = ttk.Frame(self, padding=16)
-        frame.pack(fill="both", expand=True)
-        frame.columnconfigure(0, weight=1)
-        frame.rowconfigure(3, weight=1)
+        self.setup_ui()
 
-        ttk.Label(frame, text="Email Extractor", font=("Segoe UI", 18, "bold")).grid(
-            row=0, column=0, sticky="w"
+    def setup_ui(self):
+        # Main frame with padding
+        main_frame = ctk.CTkFrame(self.root, corner_radius=15)
+        main_frame.pack(padx=20, pady=20, fill="both", expand=True)
+
+        # Title
+        title_label = ctk.CTkLabel(
+            main_frame,
+            text="📧 Email Extractor Pro",
+            font=ctk.CTkFont(size=28, weight="bold")
         )
+        title_label.pack(pady=(20, 30))
 
-        controls = ttk.Frame(frame)
-        controls.grid(row=1, column=0, sticky="ew", pady=(16, 10))
-        controls.columnconfigure(0, weight=1)
-        ttk.Label(controls, textvariable=self.file_label).grid(row=0, column=0, sticky="w")
-        ttk.Button(controls, text="Choose file…", command=self.choose_file).grid(
-            row=0, column=1, padx=(12, 0)
+        # Input File Section
+        input_frame = ctk.CTkFrame(main_frame, corner_radius=10)
+        input_frame.pack(padx=20, pady=10, fill="x")
+
+        input_label = ctk.CTkLabel(
+            input_frame,
+            text="Input File:",
+            font=ctk.CTkFont(size=14, weight="bold")
         )
+        input_label.pack(padx=15, pady=(15, 5), anchor="w")
 
-        buttons = ttk.Frame(frame)
-        buttons.grid(row=2, column=0, sticky="w", pady=(0, 10))
-        ttk.Button(buttons, text="Extract emails", command=self.extract_emails).pack(side="left")
-        self.save_button = ttk.Button(buttons, text="Save results…", command=self.save_results, state="disabled")
-        self.save_button.pack(side="left", padx=(8, 0))
-
-        output = ttk.LabelFrame(frame, text="Results", padding=8)
-        output.grid(row=3, column=0, sticky="nsew")
-        output.columnconfigure(0, weight=1)
-        output.rowconfigure(0, weight=1)
-        self.results = tk.Text(output, state="disabled", font=("Consolas", 10))
-        scrollbar = ttk.Scrollbar(output, command=self.results.yview)
-        self.results.configure(yscrollcommand=scrollbar.set)
-        self.results.grid(row=0, column=0, sticky="nsew")
-        scrollbar.grid(row=0, column=1, sticky="ns")
-
-        ttk.Label(frame, textvariable=self.status).grid(row=4, column=0, sticky="w", pady=(10, 0))
-
-    def choose_file(self):
-        filename = filedialog.askopenfilename(
-            title="Choose input text file", filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
+        self.input_path_label = ctk.CTkLabel(
+            input_frame,
+            text="No file selected",
+            text_color="gray",
+            font=ctk.CTkFont(size=12)
         )
-        if filename:
-            self.selected_file = Path(filename)
-            self.file_label.set(str(self.selected_file))
-            self.status.set("Ready to extract emails.")
+        self.input_path_label.pack(padx=15, pady=(0, 10), anchor="w")
+
+        input_button = ctk.CTkButton(
+            input_frame,
+            text="📁 Select Input File",
+            command=self.select_input_file,
+            height=40,
+            corner_radius=8
+        )
+        input_button.pack(padx=15, pady=(0, 15), fill="x")
+
+        # Output File Section
+        output_frame = ctk.CTkFrame(main_frame, corner_radius=10)
+        output_frame.pack(padx=20, pady=10, fill="x")
+
+        output_label = ctk.CTkLabel(
+            output_frame,
+            text="Output File:",
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        output_label.pack(padx=15, pady=(15, 5), anchor="w")
+
+        self.output_path_label = ctk.CTkLabel(
+            output_frame,
+            text="Default: emails.txt",
+            text_color="gray",
+            font=ctk.CTkFont(size=12)
+        )
+        self.output_path_label.pack(padx=15, pady=(0, 10), anchor="w")
+
+        output_button = ctk.CTkButton(
+            output_frame,
+            text="💾 Select Output Location",
+            command=self.select_output_file,
+            height=40,
+            corner_radius=8
+        )
+        output_button.pack(padx=15, pady=(0, 15), fill="x")
+
+        # Extract Button
+        extract_button = ctk.CTkButton(
+            main_frame,
+            text="🚀 Extract Emails",
+            command=self.extract_emails,
+            height=50,
+            font=ctk.CTkFont(size=16, weight="bold"),
+            corner_radius=10,
+            fg_color="#2E8B57",
+            hover_color="#3CB371"
+        )
+        extract_button.pack(padx=20, pady=20, fill="x")
+
+        # Results Section
+        results_frame = ctk.CTkFrame(main_frame, corner_radius=10)
+        results_frame.pack(padx=20, pady=10, fill="both", expand=True)
+
+        results_label = ctk.CTkLabel(
+            results_frame,
+            text="Results:",
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        results_label.pack(padx=15, pady=(15, 10), anchor="w")
+
+        self.results_text = ctk.CTkTextbox(
+            results_frame,
+            font=ctk.CTkFont(family="Consolas", size=11),
+            corner_radius=8
+        )
+        self.results_text.pack(padx=15, pady=(0, 15), fill="both", expand=True)
+
+        # Status bar
+        self.status_label = ctk.CTkLabel(
+            main_frame,
+            text="Ready",
+            text_color="gray",
+            font=ctk.CTkFont(size=11)
+        )
+        self.status_label.pack(pady=(5, 15))
+
+    def select_input_file(self):
+        file_path = filedialog.askopenfilename(
+            title="Select Input File",
+            filetypes=[
+                ("Text Files", "*.txt"),
+                ("All Files", "*.*")
+            ]
+        )
+        if file_path:
+            self.input_file_path = file_path
+            self.input_path_label.configure(
+                text=os.path.basename(file_path),
+                text_color="black"
+            )
+            self.status_label.configure(text=f"Input selected: {os.path.basename(file_path)}")
+
+    def select_output_file(self):
+        file_path = filedialog.asksaveasfilename(
+            title="Save Extracted Emails",
+            defaultextension=".txt",
+            filetypes=[
+                ("Text Files", "*.txt"),
+                ("All Files", "*.*")
+            ],
+            initialfile="emails.txt"
+        )
+        if file_path:
+            self.output_file_path = file_path
+            self.output_path_label.configure(
+                text=os.path.basename(file_path),
+                text_color="black"
+            )
+            self.status_label.configure(text=f"Output: {os.path.basename(file_path)}")
 
     def extract_emails(self):
-        if not self.selected_file:
-            messagebox.showwarning("Choose a file", "Please choose an input text file first.")
-            return
-        if not MAIN_SCRIPT.is_file():
-            messagebox.showerror("main.py not found", f"Put your unchanged main.py beside this GUI file:\n{MAIN_SCRIPT}")
+        if not self.input_file_path:
+            messagebox.showwarning("Warning", "Please select an input file first!")
             return
 
         try:
-            with tempfile.TemporaryDirectory() as temporary_folder:
-                temporary_path = Path(temporary_folder)
-                shutil.copyfile(self.selected_file, temporary_path / "input.txt")
-                result = subprocess.run(
-                    [sys.executable, str(MAIN_SCRIPT)],
-                    cwd=temporary_path,
-                    text=True,
-                    capture_output=True,
-                    check=True,
-                )
-                self.emails_text = (temporary_path / "emails.txt").read_text(encoding="utf-8")
-        except (OSError, subprocess.CalledProcessError) as error:
-            details = getattr(error, "stderr", "") or str(error)
-            messagebox.showerror("Extraction failed", details)
-            return
+            self.status_label.configure(text="Extracting emails...")
+            self.results_text.delete("1.0", "end")
 
-        self._display_results()
-        count = len([line for line in self.emails_text.splitlines() if line])
-        self.status.set(f"{count} email address{'es' if count != 1 else ''} extracted successfully.")
-        self.save_button.configure(state="normal")
+            # Original extraction code
+            with open(self.input_file_path, "r", encoding="utf-8") as file:
+                text = file.read()
 
-    def _display_results(self):
-        self.results.configure(state="normal")
-        self.results.delete("1.0", "end")
-        self.results.insert("1.0", self.emails_text or "No email addresses found.")
-        self.results.configure(state="disabled")
+            emails = re.findall(r"[\w.-]+@[\w.-]+\.\w+", text)
+            unique_emails = list(dict.fromkeys(emails))
 
-    def save_results(self):
-        filename = filedialog.asksaveasfilename(
-            title="Save email addresses", defaultextension=".txt", initialfile="emails.txt",
-            filetypes=[("Text files", "*.txt")],
-        )
-        if filename:
-            Path(filename).write_text(self.emails_text, encoding="utf-8")
-            self.status.set(f"Results saved to {filename}")
+            # Display results
+            self.results_text.insert("1.0", f"Found {len(unique_emails)} unique emails:\n\n")
+            for email in unique_emails:
+                self.results_text.insert("end", f"• {email}\n")
+
+            # Save to file
+            output_path = self.output_file_path if self.output_file_path else "emails.txt"
+            with open(output_path, "w", encoding="utf-8") as file:
+                for email in unique_emails:
+                    file.write(email + "\n")
+
+            self.status_label.configure(
+                text=f"✓ {len(unique_emails)} emails extracted and saved!",
+                text_color="#2E8B57"
+            )
+            messagebox.showinfo(
+                "Success",
+                f"{len(unique_emails)} email addresses extracted successfully!\nSaved to: {output_path}"
+            )
+
+        except FileNotFoundError:
+            messagebox.showerror("Error", "Input file not found!")
+            self.status_label.configure(text="Error: File not found", text_color="red")
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred: {str(e)}")
+            self.status_label.configure(text=f"Error: {str(e)}", text_color="red")
+
+    def run(self):
+        self.root.mainloop()
 
 
 if __name__ == "__main__":
-    EmailExtractorGUI().mainloop()
+    app = EmailExtractorApp()
+    app.run()
